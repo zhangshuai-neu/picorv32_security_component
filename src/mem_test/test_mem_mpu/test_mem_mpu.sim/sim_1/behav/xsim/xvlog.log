@@ -1,0 +1,13 @@
+INFO: [VRFC 10-2263] Analyzing Verilog file "/home/zhangshuai/develop/pico_vivado/src/mem_test/src/mem.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module mem_mem
+INFO: [VRFC 10-2263] Analyzing Verilog file "/home/zhangshuai/develop/pico_vivado/src/mem_test/src/mem_mpu.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module mem_mpu
+INFO: [VRFC 10-2263] Analyzing Verilog file "/home/zhangshuai/develop/pico_vivado/src/mem_test/src/picorv32.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module picorv32
+INFO: [VRFC 10-311] analyzing module picorv32_regs
+INFO: [VRFC 10-311] analyzing module picorv32_pcpi_mul
+INFO: [VRFC 10-311] analyzing module picorv32_pcpi_fast_mul
+INFO: [VRFC 10-311] analyzing module picorv32_pcpi_div
+INFO: [VRFC 10-311] analyzing module picorv32_wb
+INFO: [VRFC 10-2263] Analyzing Verilog file "/home/zhangshuai/develop/pico_vivado/src/mem_test/src/picosoc.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module picosoc
