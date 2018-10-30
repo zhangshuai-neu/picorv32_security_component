@@ -83,6 +83,12 @@ module picorv32 #(
 	input clk, resetn,
 	output reg trap,
 
+//===========================================
+// 连接到 MPU 在访问内存
+//===========================================    
+    output            decoder_trigger,
+    output     [31:0] reg_pc,
+    input wire        mpu_inform_wait,
 	//本地内存接口-连接指令总线
 	output reg        mem_valid,
 	output reg        mem_instr,
@@ -92,6 +98,7 @@ module picorv32 #(
 	output reg [31:0] mem_wdata,
 	output reg [ 3:0] mem_wstrb,
 	input      [31:0] mem_rdata,
+//===========================================
 
 	//预读接口
 	output            mem_la_read,
@@ -147,12 +154,12 @@ module picorv32 #(
 	localparam integer irqregs_offset = ENABLE_REGS_16_31 ? 32 : 16;
 	
 	/*
-		regfile_size寄存器数量：
-		最少16个寄存器，x0~x15 16个
-		ENABLE_REGS_16_31：使能x16~x31寄存器 16个
-		ENABLE_IRQ，ENABLE_IRQ_QREGS：使能中断寄存器 4个
-		最多16+16+4=36个寄存器
-	*/
+     * regfile_size寄存器数量：
+     * 最少16个寄存器，x0~x15 16个
+     * ENABLE_REGS_16_31：使能x16~x31寄存器 16个
+     * ENABLE_IRQ，ENABLE_IRQ_QREGS：使能中断寄存器 4个
+     * 最多16+16+4=36个寄存器
+	 */ 
 	localparam integer regfile_size = (ENABLE_REGS_16_31 ? 32 : 16) + 4*ENABLE_IRQ*ENABLE_IRQ_QREGS;
 	//寄存器索引位数，和前面的寄存器数量对应
 	localparam integer regindex_bits = (ENABLE_REGS_16_31 ? 5 : 4) + ENABLE_IRQ*ENABLE_IRQ_QREGS;
@@ -339,7 +346,7 @@ module picorv32 #(
 		endcase
 	end
 
-
+    // debug_zs3 内存访问接口
 	// Memory Interface
 
 	reg [1:0] mem_state;
@@ -366,8 +373,11 @@ module picorv32 #(
 	wire mem_la_use_prefetched_high_word = COMPRESSED_ISA && mem_la_firstword && prefetched_high_word && !clear_prefetched_high_word;
 	assign mem_xfer = (mem_valid && mem_ready) || (mem_la_use_prefetched_high_word && mem_do_rinst);
 
+    
 	wire mem_busy = |{mem_do_prefetch, mem_do_rinst, mem_do_rdata, mem_do_wdata};
-	wire mem_done = resetn && ((mem_xfer && |mem_state && (mem_do_rinst || mem_do_rdata || mem_do_wdata)) || (&mem_state && mem_do_rinst)) &&
+    
+    //debug_zs5 内存操作完成
+	wire mem_done = !mpu_inform_wait && resetn && ((mem_xfer && |mem_state && (mem_do_rinst || mem_do_rdata || mem_do_wdata)) || (&mem_state && mem_do_rinst)) &&
 			(!mem_la_firstword || (~&mem_rdata_latched[1:0] && mem_xfer));
 
 	assign mem_la_write = resetn && !mem_state && mem_do_wdata;
@@ -575,15 +585,24 @@ module picorv32 #(
 			case (mem_state)
 				0: begin
 					if (mem_do_prefetch || mem_do_rinst || mem_do_rdata) begin
-						mem_valid <= !mem_la_use_prefetched_high_word;
-						mem_instr <= mem_do_prefetch || mem_do_rinst;
-						mem_wstrb <= 0;
-						mem_state <= 1;
+                        //debug_zs6
+                        if(!mpu_inform_wait) begin
+                            $display("read instr or data");
+                            //读数据或者读指令
+                            mem_valid <= !mem_la_use_prefetched_high_word;
+                            mem_instr <= (mem_do_prefetch || mem_do_rinst);
+                            mem_wstrb <= 0;
+                            mem_state <= 1;
+                        end
 					end
 					if (mem_do_wdata) begin
-						mem_valid <= 1;
-						mem_instr <= 0;
-						mem_state <= 2;
+                        //debug_zs6
+                        if(!mpu_inform_wait) begin
+                            //写数据
+                            mem_valid <= 1;
+                            mem_instr <= 0;
+                            mem_state <= 2;
+                        end
 					end
 				end
 				1: begin
@@ -613,6 +632,7 @@ module picorv32 #(
 					end
 				end
 				2: begin
+                    //写数据
 					`assert(mem_wstrb != 0);
 					`assert(mem_do_wdata);
 					if (mem_xfer) begin
@@ -635,7 +655,7 @@ module picorv32 #(
 	end
 
 
-	// Instruction Decoder
+	// 指令解析
 
 	reg instr_lui, instr_auipc, instr_jal, instr_jalr;
 	reg instr_beq, instr_bne, instr_blt, instr_bge, instr_bltu, instr_bgeu;
@@ -1156,7 +1176,10 @@ module picorv32 #(
 	end
 
 
-	// Main State Machine
+    
+	// debug_zs4 主状态机
+    // 8个状态
+    // 修改： 在有访存操作的状态时，要等待mpu通知，在进行下一步切换
 
 	localparam cpu_state_trap   = 8'b10000000;
 	localparam cpu_state_fetch  = 8'b01000000;
@@ -1444,6 +1467,7 @@ module picorv32 #(
 			trace_data <= 'bx;
 
 		/*
+            debug_zs1 : 复位
 			resetn 复位操作，复位的内容：
 				reg_pc：PROGADDR_RESET
 				cpu_state：cpu_state_fetch
@@ -1481,9 +1505,11 @@ module picorv32 #(
 			cpu_state_trap: begin
 				trap <= 1;
 			end
-
+            
+            // debug_zs2 : cpu取指令
 			cpu_state_fetch: begin
-				mem_do_rinst <= !decoder_trigger && !do_waitirq;
+                //debug_zs7 
+				mem_do_rinst <= !decoder_trigger && !do_waitirq && !mpu_inform_wait;
 				mem_wordsize <= 0;
 
 				current_pc = reg_next_pc;
@@ -1544,7 +1570,9 @@ module picorv32 #(
 						latched_store <= 1;
 						reg_out <= irq_pending;
 						reg_next_pc <= current_pc + (compressed_instr ? 2 : 4);
-						mem_do_rinst <= 1;
+                        //debug_zs7
+						mem_do_rinst <= 1 && !mpu_inform_wait;
+                        $display("debug_zs: line 1573");
 					end else
 						do_waitirq <= 1;
 				end else
@@ -1559,13 +1587,14 @@ module picorv32 #(
 						if (!ENABLE_COUNTERS64) count_instr[63:32] <= 0;
 					end
 					if (instr_jal) begin
-						mem_do_rinst <= 1;
+						mem_do_rinst <= 1 && !mpu_inform_wait;
 						reg_next_pc <= current_pc + decoded_imm_uj;
 						latched_branch <= 1;
 					end else begin
-						mem_do_rinst <= 0;
-						mem_do_prefetch <= !instr_jalr && !instr_retirq;
-						cpu_state <= cpu_state_ld_rs1;
+                        //debug_zs7 
+                        mem_do_rinst <= 0;
+                        mem_do_prefetch <= !instr_jalr && !instr_retirq;
+                        cpu_state <= cpu_state_ld_rs1;
 					end
 				end
 			end

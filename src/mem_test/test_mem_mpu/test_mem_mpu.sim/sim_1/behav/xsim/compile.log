@@ -2,8 +2,12 @@ INFO: [VRFC 10-2263] Analyzing Verilog file "/home/zhangshuai/develop/pico_vivad
 INFO: [VRFC 10-311] analyzing module mem_mem
 INFO: [VRFC 10-2263] Analyzing Verilog file "/home/zhangshuai/develop/pico_vivado/src/mem_test/src/mem_mpu.v" into library xil_defaultlib
 INFO: [VRFC 10-311] analyzing module mem_mpu
+WARNING: [VRFC 10-1315] redeclaration of ansi port do_read_data is not allowed [/home/zhangshuai/develop/pico_vivado/src/mem_test/src/mem_mpu.v:51]
+WARNING: [VRFC 10-1315] redeclaration of ansi port do_write_data is not allowed [/home/zhangshuai/develop/pico_vivado/src/mem_test/src/mem_mpu.v:52]
 INFO: [VRFC 10-2263] Analyzing Verilog file "/home/zhangshuai/develop/pico_vivado/src/mem_test/src/picorv32.v" into library xil_defaultlib
 INFO: [VRFC 10-311] analyzing module picorv32
+WARNING: [VRFC 10-1315] redeclaration of ansi port reg_pc is not allowed [/home/zhangshuai/develop/pico_vivado/src/mem_test/src/picorv32.v:177]
+WARNING: [VRFC 10-1315] redeclaration of ansi port decoder_trigger is not allowed [/home/zhangshuai/develop/pico_vivado/src/mem_test/src/picorv32.v:671]
 INFO: [VRFC 10-311] analyzing module picorv32_regs
 INFO: [VRFC 10-311] analyzing module picorv32_pcpi_mul
 INFO: [VRFC 10-311] analyzing module picorv32_pcpi_fast_mul
