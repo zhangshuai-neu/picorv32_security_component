@@ -104,10 +104,11 @@ module mem_mpu #(
     
     // 通知cpu取数据 ===========================================
     always @(posedge clk) begin
+        if (!cpu_valid) begin
+            cpu_ready <= 0;  
+        end
         if (do_read_inst_ok || do_read_data_ok || do_write_data_ok) begin
-
-            cpu_ready <= cpu_valid && !cpu_ready && cpu_addr < 4*MEM_WORDS;             
-            
+            cpu_ready <= 1;             
             inform_cpu_wait<=0;
             do_read_inst <=0;
             do_read_data <= 0;
@@ -120,6 +121,7 @@ module mem_mpu #(
             is_legal_accces <= 1;
             
             temp_reg <= 0;
+            temp_count<= 0;
         end
     end
     
@@ -163,7 +165,7 @@ module mem_mpu #(
     always @(posedge clk) begin
         if (resetn) begin
             if (!is_inst) begin
-                if(!is_data_op) begin
+                if(!is_data_op && cpu_valid && !cpu_ready) begin
                     //数据操作互斥
                     if (mpu_mem_wen==4'b0000) begin
                         //读数据
@@ -172,6 +174,7 @@ module mem_mpu #(
                         
                         mpu2mem_wen <= mpu_mem_wen;
                         mpu2mem_addr <= cpu_addr;
+                        mpu2mem_rdata <= mem_rdata;
                     end
                     else begin
                         //写数据
@@ -222,9 +225,14 @@ module mem_mpu #(
                      //mpu_cache[0]里面是时钟导致的乱数据
                     if(pc_word_addr>=mpu_cache[i*MPU_ITEM_LEN+0] && pc_word_addr<=mpu_cache[i*MPU_ITEM_LEN+2]) begin
                         if(mpu2mem_addr>=mpu_cache[i*MPU_ITEM_LEN+3] && mpu2mem_addr<=mpu_cache[i*MPU_ITEM_LEN+4]) begin
+                            
+                            //这里在以后会添加权限的判断
+                        
                             is_legal_accces <= 1;
                         end
                         else begin
+                            //这里在以后会添加权限的判断
+                        
                             is_legal_accces <= 0;
                         end
                     end
@@ -250,10 +258,12 @@ module mem_mpu #(
                 mem_wen <= mpu2mem_wen;
                 mem_addr <= mpu2mem_addr;
                 
+                //必须要放在这里，保持及时更新，否则会出现指令被当成数据的情况
+                cpu_rdata <= mem_rdata;
+                
                 temp_count <= temp_count+1;
                 if(temp_count[0:0] == 1) begin
                     if(mpu2mem_wen == 4'b0000) begin
-                        cpu_rdata <= mem_rdata;
                         do_read_data_ok <= 1;
                     end
                 end

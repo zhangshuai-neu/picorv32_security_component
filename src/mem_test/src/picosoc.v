@@ -16,7 +16,7 @@
 
 module picosoc ();
 	parameter integer MEM_WORDS = 1024;
-	parameter [31:0] STACKADDR = (3*MEM_WORDS)-4;
+	parameter [31:0] STACKADDR = 512*4;
 	parameter [31:0] PROGADDR_RESET = 32'h00000000;
 
     reg clk;

@@ -43,7 +43,7 @@ module picorv32 #(
 	//使能x16~x31寄存器
 	parameter [ 0:0] ENABLE_REGS_16_31 = 1,
 	//启用双端口读取寄存器文件
-	parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
+	parameter [ 0:0] ENABLE_REGS_DUALPORT = 0,
 	parameter [ 0:0] LATCHED_MEM_RDATA = 0,
 	parameter [ 0:0] TWO_STAGE_SHIFT = 1,
 	
@@ -587,7 +587,6 @@ module picorv32 #(
 					if (mem_do_prefetch || mem_do_rinst || mem_do_rdata) begin
                         //debug_zs6
                         if(!mpu_inform_wait) begin
-                            $display("read instr or data");
                             //读数据或者读指令
                             mem_valid <= !mem_la_use_prefetched_high_word;
                             mem_instr <= (mem_do_prefetch || mem_do_rinst);
