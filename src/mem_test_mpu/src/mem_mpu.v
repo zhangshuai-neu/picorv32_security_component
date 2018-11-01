@@ -45,7 +45,7 @@ module mem_mpu #(
     
     // pc 字地址
     wire [31:0] pc_word_addr;
-    assign pc_word_addr = pc_addr/4;
+    assign pc_word_addr = pc_addr/4 -1; //数据操作指令后一定会在再读取一条指令，所以数据操作的pc地址需要提前一条指令
     //标记要进行的操作 ===========================================
     reg do_read_inst;       // 读指令操作
     reg do_read_data;       // 读数据操作

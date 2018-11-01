@@ -16,8 +16,9 @@
 
 module picosoc ();
 	parameter integer MEM_WORDS = 1024;
-	parameter [31:0] STACKADDR = 512*4;
-	parameter [31:0] PROGADDR_RESET = 32'h00000000;
+	parameter [31:0] STACKADDR = 1024;                  // 字节地址
+	parameter [31:0] PROGADDR_RESET = 32'h0000_0000;    // 程序复位地址（boot） 字节地址
+    parameter [31:0] PROGADDR_IRQ = 32'h0000_0800;      // 中断处理程序地址 字节地址
 
     reg clk;
     reg resetn;
@@ -25,11 +26,11 @@ module picosoc ();
     // cpu -> mpu 的连线
     wire [31:0] cpu_mpu_pc_addr;    //pc的地址
     
-	wire cpu_mpu_valid;
+	wire cpu_mpu_valid;         //cpu通知mpu读指令
 	wire cpu_mpu_instr;         //1表示取指令
     wire inform_cpu_wait;       //通知cpu等待
     
-	wire cpu_mpu_ready;
+	wire cpu_mpu_ready;         //mpu通知cpu取数据（指令）
 	wire [31:0] cpu_mpu_addr;	//指定内存地址
 	wire [31:0] cpu_mpu_wdata;	//写入内存
 	wire [3:0]  cpu_mpu_wstrb;	//链接"写使能"，指定那些Byte被写
@@ -46,14 +47,20 @@ module picosoc ();
 	initial begin
 		clk = 0;
         resetn = 0;
-		//加在一段程序
+    //一段boot测试程序 ===========================================================================
         $readmemh("/home/zhangshuai/develop/pico_vivado/src/mem_test/src/asm_main.data",sram.mem,0);
-		//加在MPU
-        $readmemh("/home/zhangshuai/develop/pico_vivado/src/mem_test/src/mpu_conf.data",sram.mem,768);
-        
-		for(i=0;i<13;i=i+1)
+        for(i=0;i<13;i=i+1)
 			$display("sram.mem[%d] = %h",i,sram.mem[i]);
-			
+		
+    //中断处理程序--目前只是死循环 =================================================================
+        $readmemh("/home/zhangshuai/develop/pico_vivado/src/mem_test/src/irq.data",sram.mem,512);
+        $display("\n");
+        for(i=512;i<512+2;i=i+1)
+			$display("sram.mem[%d] = %h",i,sram.mem[i]);
+        
+    //MPU配置初始化 ================================================================================
+        $readmemh("/home/zhangshuai/develop/pico_vivado/src/mem_test/src/mpu_conf.data",sram.mem,768);
+        $display("\n");	
         for(i=768;i<768+5;i=i+1)
 			$display("sram.mem[%d] = %h",i,sram.mem[i]);
 	end
@@ -67,8 +74,11 @@ module picosoc ();
             .STACKADDR(STACKADDR),				// x2 堆栈指针的值
             .PROGADDR_RESET(PROGADDR_RESET),	//程序的开始地址
             .BARREL_SHIFTER(1),
-            .ENABLE_IRQ(1),
-            .ENABLE_IRQ_QREGS(0)
+            
+            .ENABLE_IRQ(1),                     //启用中断
+            .PROGADDR_IRQ(),                    //中断地址
+            
+            .REGS_INIT_ZERO(1)                  //寄存器初始为0
 		) 
 		cpu 
         (
