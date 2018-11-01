@@ -23,7 +23,7 @@ module picosoc ();
     reg clk;
     reg resetn;
 	
-    // cpu -> mpu 的连线
+    // cpu <-> mpu 的连线
     wire [31:0] cpu_mpu_pc_addr;    //pc的地址
     
 	wire cpu_mpu_valid;         //cpu通知mpu读指令
@@ -35,8 +35,10 @@ module picosoc ();
 	wire [31:0] cpu_mpu_wdata;	//写入内存
 	wire [3:0]  cpu_mpu_wstrb;	//链接"写使能"，指定那些Byte被写
 	wire [31:0] cpu_mpu_rdata;	//存储器读取
+    
+    wire cpu_mpu_interrupt;     //mpu触发的中断
 	
-    // mpu -> mem 的连线
+    // mpu <-> mem 的连线
 	wire [3:0]  mpu_mem_wen;	  //写使能
     wire [21:0] mpu_mem_addr;     //22位地址
     wire [31:0] mpu_mem_wdata;    //32位写数据
@@ -76,10 +78,10 @@ module picosoc ();
             .BARREL_SHIFTER(1),
             
             .ENABLE_IRQ(1),                     //启用中断
-            .PROGADDR_IRQ(),                    //中断地址
+            .PROGADDR_IRQ(PROGADDR_IRQ),        //中断地址
             
             .REGS_INIT_ZERO(1)                  //寄存器初始为0
-		) 
+		)
 		cpu 
         (
 			.clk         (clk        ),		// input

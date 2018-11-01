@@ -86,14 +86,16 @@ module picorv32 #(
 //===========================================
 // 连接到 MPU 在访问内存
 //===========================================    
-    output            decoder_trigger,
-    output     [31:0] reg_pc,
-    input wire        mpu_inform_wait,
-	//本地内存接口-连接指令总线
+    // mpu
+    output            decoder_trigger,      //解码器是否会触发
+    output     [31:0] reg_pc,               //最近一条读取的指令的pc
+    input wire        mpu_inform_wait,      //MPU通知等待数据操作
+    input wire        mpu_interrupt,        //MPU中断
+	
+    // 内存接口
 	output reg        mem_valid,
 	output reg        mem_instr,
 	input             mem_ready,
-	//本地内存接口-连接数据总线
 	output reg [31:0] mem_addr,
 	output reg [31:0] mem_wdata,
 	output reg [ 3:0] mem_wstrb,

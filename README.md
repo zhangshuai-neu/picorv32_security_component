@@ -1,14 +1,12 @@
 # pico_vivado
 
-**目的:** 创建一个在vivado中调试的picorv32处理器的片上系统
+**目的:** 在picorv32上进行开发
 
 **源文件:**
-
-    src/picorv32.v       :   处理器代码（axi-lite接口）
-    src/s_axi_lite_mem.v :   axi-lite接口的存储器
-    src/picosoc.v        :   片上系统
-
-    将所有文件导入vivado项目中，再将picosoc作为顶层文件进行仿真即可
+	src目录下包含正在测试的程序
+	正在测试的 mem_test_mpu目录下的mpu以及中断
+	调试完成后将会将vivado项目，移动到vivado_project目录下，源文件保留
+    
 
 **riscv_bare_metal:**
 
