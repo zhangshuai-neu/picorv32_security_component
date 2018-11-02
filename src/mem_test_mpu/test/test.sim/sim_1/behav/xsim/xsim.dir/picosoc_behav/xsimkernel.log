@@ -2,3 +2,6 @@ Running: xsim.dir/picosoc_behav/xsimk -simmode gui -wdb picosoc_behav.wdb -simru
 Design successfully loaded
 Design Loading Memory Usage: 47500 KB (Peak: 47500 KB)
 Design Loading CPU Usage: 10 ms
+Simulation completed
+Simulation Memory Usage: 133604 KB (Peak: 194776 KB)
+Simulation CPU Usage: 60 ms
