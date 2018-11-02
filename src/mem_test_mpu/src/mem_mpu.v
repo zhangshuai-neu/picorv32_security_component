@@ -260,11 +260,13 @@ module mem_mpu #(
     // mpu中断--响应后跳入中断处理程序
     always @(posedge clk) begin
         if (interrupt) begin
-            interrupt<=0;
             //复位mpu的部分状态
-            do_read_data_ok <=0;
-            do_write_data_ok <=0;
-            is_legal_accces <=1;
+            do_read_data <=0;
+            do_write_data <=0;
+            if(!is_data_op) begin
+                interrupt<=0;
+                is_legal_accces <=1;
+            end
         end
     end
     
