@@ -1,0 +1,18 @@
+Vivado Simulator 2017.4
+Copyright 1986-1999, 2001-2016 Xilinx, Inc. All Rights Reserved.
+Running: /opt/Xilinx_2017/Vivado/2017.4/bin/unwrapped/lnx64.o/xelab -wto 1d35c6c3a0414281b4b5c4cc0b332489 --incr --debug typical --relax --mt 8 -L xil_defaultlib -L unisims_ver -L unimacro_ver -L secureip --snapshot picosoc_behav xil_defaultlib.picosoc xil_defaultlib.glbl -log elaborate.log 
+Using 8 slave threads.
+Starting static elaboration
+WARNING: [VRFC 10-2534] module mem_mpu does not have a parameter named MPU_LEN [/home/zhangshuai/develop/pico_vivado/src/mem_test_mpu/src/picosoc.v:111]
+Completed static elaboration
+Starting simulation data flow analysis
+WARNING: [XSIM 43-4099] "/home/zhangshuai/develop/pico_vivado/src/mem_test_mpu/src/mem_mpu.v" Line 4. Module mem_mpu doesn't have a timescale but at least one module in design has a timescale.
+WARNING: [XSIM 43-4099] "/home/zhangshuai/develop/pico_vivado/src/mem_test_mpu/src/mem.v" Line 6. Module mem_mem doesn't have a timescale but at least one module in design has a timescale.
+Completed simulation data flow analysis
+Time Resolution for simulation is 1ps
+Compiling module xil_defaultlib.picorv32(BARREL_SHIFTER=1'b1,ENA...
+Compiling module xil_defaultlib.mem_mpu
+Compiling module xil_defaultlib.mem_mem
+Compiling module xil_defaultlib.picosoc
+Compiling module xil_defaultlib.glbl
+Built simulation snapshot picosoc_behav

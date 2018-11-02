@@ -12,12 +12,18 @@ module mem_mpu #(
         input wire clk,
         input wire resetn,              //为0复位
         
-        // 连接cpu的接口
+    // 连接cpu的接口===================
         input wire is_inst,             //判断是否为指令
         output reg inform_cpu_wait,     //通知cpu等待
         
+        // 指令地址接口
         input wire [31:0] pc_addr,      //数据操作指令的pcz
-
+        
+        // 中断接口
+        output reg interrupt,           //1 为中断
+        output reg is_legal_accces,     //方便调试
+        
+        // 来自cpu的访存信号
         input wire        cpu_valid,
         output reg        cpu_ready,
         input wire [21:0] cpu_addr,
@@ -25,14 +31,12 @@ module mem_mpu #(
         input wire [ 3:0] cpu_wstrb,
         output reg [31:0] cpu_rdata,
 		
-		// 连接mem的接口
+    // 连接mem的接口 ===================
+        // 送入mem的访存信号
 		output reg [3:0]  mem_wen,		//写使能
         output reg [21:0] mem_addr,     //22位地址
         output reg [31:0] mem_wdata,    //32位写数据
         input wire [31:0] mem_rdata,    //32位读数据
-        
-        // 中断接口
-        output reg interrupt,           //1 为中断
         
         // 测试显示
         output do_read_data,
@@ -45,7 +49,8 @@ module mem_mpu #(
     
     // pc 字地址
     wire [31:0] pc_word_addr;
-    assign pc_word_addr = pc_addr/4 -1; //数据操作指令后一定会在再读取一条指令，所以数据操作的pc地址需要提前一条指令
+    assign pc_word_addr = pc_addr/4; //数据操作指令后一定会在再读取一条指令，所以数据操作的pc地址需要提前一条指令
+    
     //标记要进行的操作 ===========================================
     reg do_read_inst;       // 读指令操作
     reg do_read_data;       // 读数据操作
@@ -72,7 +77,8 @@ module mem_mpu #(
     reg [1:0]  temp_count;
     
 	// mpu cache 临时存储 ======================================
-	reg [DATA_WIDTH-1:0] mpu_cache[MPU_ITEM_NUM*MPU_ITEM_LEN:0];  // 存放从 mem 中读取的 mpu 信息
+    // 存放从 mem 中读取的 mpu 信息
+	reg [DATA_WIDTH-1:0] mpu_cache[MPU_ITEM_NUM*MPU_ITEM_LEN:0];  
 	reg cache_need_mod;                             // 判断 mpu cache 是否需要更新
     reg is_legal_accces;                            // 是否合法,不合法
     reg [21:0] item_count;                          // 更新cache时的计数
@@ -100,7 +106,7 @@ module mem_mpu #(
             item_count<= 0;
             temp_count<= 0;
         end
-	end 
+	end
     
     // 通知cpu取数据 ===========================================
     always @(posedge clk) begin
@@ -217,22 +223,20 @@ module mem_mpu #(
         end
     end
     
-    // 检查能否进行操作
+    // 检查能否进行操作 ---- 需要进行更复杂的修改 ：）
     always @(posedge clk) begin
         if (resetn && is_data_op) begin
             if (!cache_need_mod) begin
                 for(i=0;i<MPU_ITEM_NUM;i=i+1) begin
                      //mpu_cache[0]里面是时钟导致的乱数据
-                    if(pc_word_addr>=mpu_cache[i*MPU_ITEM_LEN+0] && pc_word_addr<=mpu_cache[i*MPU_ITEM_LEN+2]) begin
+                    if(pc_word_addr>=mpu_cache[i*MPU_ITEM_LEN+1] && pc_word_addr<=mpu_cache[i*MPU_ITEM_LEN+2]) begin
+                        //指令范围合法
                         if(mpu2mem_addr>=mpu_cache[i*MPU_ITEM_LEN+3] && mpu2mem_addr<=mpu_cache[i*MPU_ITEM_LEN+4]) begin
-                            
-                            //这里在以后会添加权限的判断
-                        
+                            //数据范围合法
                             is_legal_accces <= 1;
                         end
                         else begin
-                            //这里在以后会添加权限的判断
-                        
+                            //数据范围不合法
                             is_legal_accces <= 0;
                         end
                     end
@@ -241,13 +245,26 @@ module mem_mpu #(
         end
     end
     
-    // 非法访问
+    // 非法访问--触发mpu中断
     always @(posedge clk) begin
         if (resetn && is_data_op) begin
-            if(!is_legal_accces) begin
+            if(is_data_op && !is_legal_accces) begin
+                //使能mem_done和中断，使cpu运行中断程序
                 interrupt <= 1;
-                cpu_ready <= 0;
+                inform_cpu_wait <= 0;
+                cpu_ready <= 1;
             end
+        end
+    end
+    
+    // mpu中断--响应后跳入中断处理程序
+    always @(posedge clk) begin
+        if (interrupt) begin
+            interrupt<=0;
+            //复位mpu的部分状态
+            do_read_data_ok <=0;
+            do_write_data_ok <=0;
+            is_legal_accces <=1;
         end
     end
     

@@ -82,6 +82,8 @@ module picorv32 #(
 ) (
 	input clk, resetn,
 	output reg trap,
+    
+    output irq_state,
 
 //===========================================
 // 连接到 MPU 在访问内存
@@ -100,8 +102,8 @@ module picorv32 #(
 	output reg [31:0] mem_wdata,
 	output reg [ 3:0] mem_wstrb,
 	input      [31:0] mem_rdata,
-//===========================================
 
+//===========================================
 	//预读接口
 	output            mem_la_read,
 	output            mem_la_write,
@@ -120,6 +122,7 @@ module picorv32 #(
 	input             pcpi_ready,
 
 	//中断接口
+    //debug_zs irq
 	input      [31:0] irq,
 	output reg [31:0] eoi,
 
@@ -149,10 +152,11 @@ module picorv32 #(
 	output reg        trace_valid,
 	output reg [35:0] trace_data
 );
-	//本地参数
-	localparam integer irq_timer = 0;
-	localparam integer irq_ebreak = 1;
-	localparam integer irq_buserror = 2;
+	//中断的四种类型 
+	localparam integer irq_timer = 0;       //时钟中断
+	localparam integer irq_ebreak = 1;      //非法指令/非法
+    //debug_zs : mpu检测的非法访问，将会造成总线错误 --为了省事 :)
+	localparam integer irq_buserror = 2;    //总线错误，未对齐的内存访问  
 	localparam integer irqregs_offset = ENABLE_REGS_16_31 ? 32 : 16;
 	
 	/*
@@ -198,8 +202,8 @@ module picorv32 #(
 
 	reg irq_delay;
 	reg irq_active;
-	reg [31:0] irq_mask;
-	reg [31:0] irq_pending;
+	reg [31:0] irq_mask;        // 中断mask 用来表示那些中断启用
+	reg [31:0] irq_pending;     // 
 	reg [31:0] timer;
 
 `ifndef PICORV32_REGS
@@ -1175,8 +1179,6 @@ module picorv32 #(
 			instr_and   <= 0;
 		end
 	end
-
-
     
 	// debug_zs4 主状态机
     // 8个状态
@@ -1407,6 +1409,7 @@ module picorv32 #(
 	assign launch_next_insn = cpu_state == cpu_state_fetch && decoder_trigger && (!ENABLE_IRQ || irq_delay || irq_active || !(irq_pending & ~irq_mask));
 
 	always @(posedge clk) begin
+    
 		trap <= 0;
 		reg_sh <= 'bx;
 		reg_out <= 'bx;
@@ -1524,6 +1527,7 @@ module picorv32 #(
 					latched_store && !latched_branch: begin
 						`debug($display("ST_RD:  %2d 0x%08x", latched_rd, latched_stalu ? alu_out_q : reg_out);)
 					end
+                    // debug_zs mpu中断
 					ENABLE_IRQ && irq_state[0]: begin
 						current_pc = PROGADDR_IRQ;
 						irq_active <= 1;
@@ -1894,6 +1898,10 @@ module picorv32 #(
 						set_mem_do_wdata = 1;
 					end
 					if (!mem_do_prefetch && mem_done) begin
+                        
+                        // debug_zs mpu_interrupt 由于写操作触发的mpu中断
+                        irq_state[0] <=  mpu_interrupt;
+                        
 						cpu_state <= cpu_state_fetch;
 						decoder_trigger <= 1;
 						decoder_pseudo_trigger <= 1;
@@ -1928,6 +1936,10 @@ module picorv32 #(
 							latched_is_lh: reg_out <= $signed(mem_rdata_word[15:0]);
 							latched_is_lb: reg_out <= $signed(mem_rdata_word[7:0]);
 						endcase
+                        
+                        // debug_zs mpu_interrupt 由于读操作触发的mpu中断
+                        irq_state[0] <=  mpu_interrupt;
+                        
 						decoder_trigger <= 1;
 						decoder_pseudo_trigger <= 1;
 						cpu_state <= cpu_state_fetch;

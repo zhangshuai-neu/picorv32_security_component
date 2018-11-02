@@ -11,19 +11,23 @@
  * 2) mpu 内存保护单元
  * 3) sram
  *	占用地址：0-4k
- *  0-3k为正常程序，3k-4k为控制、安全信息
+ *  
+ * 0-1k为正常程序，栈顶为1K
+ * 1k-2k 先设置为非法访问
+ * 2k-3k中断程序
+ * 3k-4k为控制、安全信息
  */
 
 module picosoc ();
 	parameter integer MEM_WORDS = 1024;
-	parameter [31:0] STACKADDR = 1024;                  // 字节地址
-	parameter [31:0] PROGADDR_RESET = 32'h0000_0000;    // 程序复位地址（boot） 字节地址
-    parameter [31:0] PROGADDR_IRQ = 32'h0000_0800;      // 中断处理程序地址 字节地址
+	parameter [31:0] STACKADDR = 1024-4;                // 字节地址1024 word地址0x100
+	parameter [31:0] PROGADDR_RESET = 32'h0000_0000;    // 程序复位地址（boot）
+    parameter [31:0] PROGADDR_IRQ = 32'h0000_0800;      // 中断处理程序地址 字节地址2k,
 
     reg clk;
     reg resetn;
 	
-    // cpu <-> mpu 的连线
+    // cpu <-> mpu 的连线 =========================================
     wire [31:0] cpu_mpu_pc_addr;    //pc的地址
     
 	wire cpu_mpu_valid;         //cpu通知mpu读指令
@@ -38,30 +42,30 @@ module picosoc ();
     
     wire cpu_mpu_interrupt;     //mpu触发的中断
 	
-    // mpu <-> mem 的连线
+    // mpu <-> mem 的连线 =========================================
 	wire [3:0]  mpu_mem_wen;	  //写使能
     wire [21:0] mpu_mem_addr;     //22位地址
     wire [31:0] mpu_mem_wdata;    //32位写数据
     wire [31:0] mpu_mem_rdata;    //32位读数据
     
-    //============================================
+    // 一些初始化操作和时钟复位信号的生成 ============================================
     integer i;
 	initial begin
 		clk = 0;
         resetn = 0;
-    //一段boot测试程序 ===========================================================================
-        $readmemh("/home/zhangshuai/develop/pico_vivado/src/mem_test/src/asm_main.data",sram.mem,0);
-        for(i=0;i<13;i=i+1)
+    //一段boot测试程序 ===========================================================
+        $readmemh("/home/zhangshuai/develop/pico_vivado/src/mem_test_mpu/src/boot.data",sram.mem,0);
+        for(i=0;i<27;i=i+1)
 			$display("sram.mem[%d] = %h",i,sram.mem[i]);
 		
-    //中断处理程序--目前只是死循环 =================================================================
-        $readmemh("/home/zhangshuai/develop/pico_vivado/src/mem_test/src/irq.data",sram.mem,512);
+    //中断处理程序--目前只是死循环 ==================================================
+        $readmemh("/home/zhangshuai/develop/pico_vivado/src/mem_test_mpu/src/irq.data",sram.mem,512);
         $display("\n");
         for(i=512;i<512+2;i=i+1)
 			$display("sram.mem[%d] = %h",i,sram.mem[i]);
         
-    //MPU配置初始化 ================================================================================
-        $readmemh("/home/zhangshuai/develop/pico_vivado/src/mem_test/src/mpu_conf.data",sram.mem,768);
+    //MPU配置初始化 ==============================================================
+        $readmemh("/home/zhangshuai/develop/pico_vivado/src/mem_test_mpu/src/mpu_conf.data",sram.mem,768);
         $display("\n");	
         for(i=768;i<768+5;i=i+1)
 			$display("sram.mem[%d] = %h",i,sram.mem[i]);
@@ -89,6 +93,7 @@ module picosoc ();
             
             .reg_pc      (cpu_mpu_pc_addr),   //optput
             .mpu_inform_wait(inform_cpu_wait),  //input
+            .mpu_interrupt(cpu_mpu_interrupt),  //input
             
 			.mem_valid   (cpu_mpu_valid  ),		// output
 			.mem_instr   (cpu_mpu_instr  ),		// output
@@ -111,9 +116,10 @@ module picosoc ();
         .resetn(resetn),
         
         //连接cpu的接口
-        .is_inst(cpu_mpu_instr),    //判断是否为指令
-        .pc_addr(cpu_mpu_pc_addr),  //数据操作指令的pc
-        .inform_cpu_wait(inform_cpu_wait),
+        .is_inst     (cpu_mpu_instr),    //判断是否为指令
+        .pc_addr     (cpu_mpu_pc_addr),  //数据操作指令的pc
+        .inform_cpu_wait(inform_cpu_wait),  //通知cpu等待
+        .interrupt   (cpu_mpu_interrupt),   //通知cpu中断
         
         .cpu_valid   (cpu_mpu_valid  ),
 		.cpu_ready   (cpu_mpu_ready  ),
