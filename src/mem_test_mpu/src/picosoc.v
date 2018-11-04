@@ -16,7 +16,6 @@
  * 1k-2k 先设置为非法访问
  * 2k-3k中断程序
  * 3k-4k为控制、安全信息
- * 4k:MPU 配置寄存器，DIFT 控制寄存器
  * 
  */
 
@@ -57,7 +56,7 @@ module picosoc ();
         resetn = 0;
     //一段boot测试程序 ===========================================================
         $readmemh("/home/zhangshuai/develop/pico_vivado/src/mem_test_mpu/src/boot.data",sram.mem,0);
-        for(i=0;i<27;i=i+1)
+        for(i=0;i<57;i=i+1)
 			$display("sram.mem[%d] = %h",i,sram.mem[i]);
 		
     //中断处理程序--目前只是死循环 ==================================================

@@ -2,13 +2,19 @@
  * pico片上系统 -- mem接口的mpu
  *
  * 有关MPU的使能问题：
- * 从不关闭mpu，但是可以初始化出代码和数据范围为全体内存的条目，从而实现类似的功能
+ * 从不关闭mpu，但是可以初始化出代码和数据范围为全体内存的条目，从而实现相同的功能
  * 
  * mpu的条目更新必须按照如下方法来做：
  * 1) 添加 访问控制字
  * 2) 添加 数据地址范围
  * 3) 添加 指令地址范围,先配置起始地址，再配置结束地址 =》表示该条目合法
+ * 4) 所有对mem的操作会直接同步到cache里面
  * notice: 空白条目的代码范围必须为0, 0
+ *
+ * mpu的条目：
+ * code_start,code_end
+ * data_start,data_end
+ * access_control(31 xxxxxxxxxxxxxxxx_xxxxxxxxxxxxx_rwx 0) 读写执行
  *
  */
 module mem_mpu #(
@@ -46,7 +52,7 @@ module mem_mpu #(
 		output reg [3:0]  mem_wen,		//写使能
         output reg [21:0] mem_addr,     //22位地址
         output reg [31:0] mem_wdata,    //32位写数据
-        input wire [31:0] mem_rdata,    //32位读数据
+        input wire [31:0] mem_rdata     //32位读数据
 	);
 
     // mpu -> mem 连线和寄存器
@@ -87,16 +93,18 @@ module mem_mpu #(
 	reg [DATA_WIDTH-1:0] mpu_cache[MPU_ITEM_NUM*MPU_ITEM_LEN:0];  
 	reg cache_need_mod;                             // 判断 mpu cache 是否需要更新
     reg is_legal_accces;                            // 是否合法,不合法
-    reg find_code_range;                            // 是否找到了代码范围
-    reg have_legal_item;                            // 之前有合法条目
+    reg access_control_ok;                          // 访问权限
     reg [21:0] item_count;                          // 更新cache时的计数
     integer i;                                      // cache索引
+    integer fine_item;
     
     // 复位 ===================================================
 	always @(posedge clk) begin 
         if (!resetn) begin
             cache_need_mod <= 1'b1;
             is_legal_accces <= 1'b1;
+            fine_item <= MPU_ITEM_NUM+1;
+            access_control_ok <= 1;
             
             inform_cpu_wait <=0;
             cpu_ready <=0;
@@ -106,10 +114,8 @@ module mem_mpu #(
             do_read_data <=0;
             do_write_data<=0;
             
-            interrupt <= 0; 
-            find_code_range <= 0;
-            have_legal_item <= 0;
-            
+            interrupt <= 0;
+           
             cache2mem_wen <= 4'b0000;
             cache2mem_addr <= MPU_START_ADDR;
             
@@ -135,6 +141,7 @@ module mem_mpu #(
             do_write_data_ok <=0;
             
             is_legal_accces <= 1;
+            fine_item <= MPU_ITEM_NUM+1;
             
             temp_reg <= 0;
             temp_count<= 0;
@@ -237,28 +244,27 @@ module mem_mpu #(
     always @(posedge clk) begin
         if (resetn && is_data_op) begin
             if (!cache_need_mod) begin
+                //search ok item
                 for(i=0;i<MPU_ITEM_NUM;i=i+1) begin
                      //mpu_cache[0]里面是时钟导致的乱数据
                     if(pc_word_addr>=mpu_cache[i*MPU_ITEM_LEN+1] && pc_word_addr<=mpu_cache[i*MPU_ITEM_LEN+2]) begin
-                        find_code_range <= 1;
                         //指令范围合法
                         if(mpu2mem_addr>=mpu_cache[i*MPU_ITEM_LEN+3] && mpu2mem_addr<=mpu_cache[i*MPU_ITEM_LEN+4]) begin
-                            is_legal_accces <= 1;   //数据范围合法
-                            have_legal_item <= 1;
-                        end
-                        else begin
-                            //一旦有过合法的条目，后续的跳过
-                            if(!have_legal_item)
-                                is_legal_accces <= 0;   //数据范围不合法
+                            //数据范围合法
+                            fine_item = i;   
                         end
                     end
                 end
-                //表明一直没有找到合法的代码范围
-                if(!find_code_range)                      
-                     is_legal_accces <= 0;  //指令范围不合法
-                     
-                find_code_range <= 0;
-                have_legal_item <= 0;
+                //访问权限
+                if(fine_item<MPU_ITEM_NUM) begin
+                    if (do_read_data && mpu_cache[fine_item*MPU_ITEM_LEN+5][2:2]!=1'b1)
+                        is_legal_accces <= 0;
+                    if (do_write_data && mpu_cache[fine_item*MPU_ITEM_LEN+5][1:1]!=1'b1)
+                        is_legal_accces <= 0;
+                end
+                else begin
+                    is_legal_accces <= 0;
+                end
             end
         end
     end
@@ -312,6 +318,7 @@ module mem_mpu #(
     always @(posedge clk) begin
         if (resetn && is_data_op) begin
             if(do_write_data && is_legal_accces && !cache_need_mod) begin
+                // 写 ram
                 mem_wen <= mpu2mem_wen;
                 mem_addr <= mpu2mem_addr;
 
@@ -321,6 +328,10 @@ module mem_mpu #(
                         do_write_data_ok <= 1;
                         mem_wdata <= mpu2mem_wdata;
                     end
+                end
+                // 写 mpu_cache, 同步更新cache
+                if (MPU_START_ADDR<=mpu2mem_addr && mpu2mem_addr<= MPU_START_ADDR+MPU_ITEM_NUM*MPU_ITEM_LEN) begin
+                    mpu_cache[mpu2mem_addr-MPU_START_ADDR] <= mpu2mem_wdata;
                 end
             end
         end

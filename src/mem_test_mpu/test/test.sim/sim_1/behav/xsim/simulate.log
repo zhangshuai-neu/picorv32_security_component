@@ -17,16 +17,46 @@ sram.mem[         13] = fec42703
 sram.mem[         14] = fe842783
 sram.mem[         15] = 00f707b3
 sram.mem[         16] = fef42223
-sram.mem[         17] = 60000793
-sram.mem[         18] = fef42023
-sram.mem[         19] = fe042783
-sram.mem[         20] = 00005737
-sram.mem[         21] = 5aa70713
-sram.mem[         22] = 00e7a023
-sram.mem[         23] = 00000013
-sram.mem[         24] = 01c12403
-sram.mem[         25] = 02010113
-sram.mem[         26] = 00008067
+sram.mem[         17] = 000017b7
+sram.mem[         18] = c0078793
+sram.mem[         19] = fef42023
+sram.mem[         20] = fe042783
+sram.mem[         21] = 02c78793
+sram.mem[         22] = fef42023
+sram.mem[         23] = fe042783
+sram.mem[         24] = 01078793
+sram.mem[         25] = fef42023
+sram.mem[         26] = fe042783
+sram.mem[         27] = 00f00713
+sram.mem[         28] = 00e7a023
+sram.mem[         29] = fe042783
+sram.mem[         30] = ff878793
+sram.mem[         31] = fef42023
+sram.mem[         32] = fe042783
+sram.mem[         33] = 0007a023
+sram.mem[         34] = fe042783
+sram.mem[         35] = 00478793
+sram.mem[         36] = 10000713
+sram.mem[         37] = 00e7a023
+sram.mem[         38] = fe042783
+sram.mem[         39] = ff878793
+sram.mem[         40] = fef42023
+sram.mem[         41] = fe042783
+sram.mem[         42] = 0007a023
+sram.mem[         43] = fe042783
+sram.mem[         44] = 00478793
+sram.mem[         45] = 10000713
+sram.mem[         46] = 00e7a023
+sram.mem[         47] = 60000793
+sram.mem[         48] = fef42023
+sram.mem[         49] = fe042783
+sram.mem[         50] = 00005737
+sram.mem[         51] = 5aa70713
+sram.mem[         52] = 00e7a023
+sram.mem[         53] = 00000013
+sram.mem[         54] = 01c12403
+sram.mem[         55] = 02010113
+sram.mem[         56] = 00008067
 
 
 sram.mem[        512] = 00000013
@@ -126,67 +156,199 @@ DECODE: 0x00000040 0xfef42223 sw
 LD_RS1:  8 0x000003fc
 LD_RS2: 15 0x00000002
 -- 3655000
-debugasm 00000044 60000793     addi
-DECODE: 0x00000044 0x60000793 addi
+debugasm 00000044 000017b7      lui
+DECODE: 0x00000044 0x000017b7 lui
+ST_RD:  15 0x00001000
+-- 3735000
+debugasm 00000048 c0078793     addi
+DECODE: 0x00000048 0xc0078793 addi
+LD_RS1: 15 0x00001000
+ST_RD:  15 0x00000c00
+-- 3815000
+debugasm 0000004c fef42023       sw
+DECODE: 0x0000004c 0xfef42023 sw
+LD_RS1:  8 0x000003fc
+LD_RS2: 15 0x00000c00
+-- 3945000
+debugasm 00000050 fe042783       lw
+DECODE: 0x00000050 0xfe042783 lw
+LD_RS1:  8 0x000003fc
+ST_RD:  15 0x00000c00
+-- 4075000
+debugasm 00000054 02c78793     addi
+DECODE: 0x00000054 0x02c78793 addi
+LD_RS1: 15 0x00000c00
+ST_RD:  15 0x00000c2c
+-- 4155000
+debugasm 00000058 fef42023       sw
+DECODE: 0x00000058 0xfef42023 sw
+LD_RS1:  8 0x000003fc
+LD_RS2: 15 0x00000c2c
+-- 4285000
+debugasm 0000005c fe042783       lw
+DECODE: 0x0000005c 0xfe042783 lw
+LD_RS1:  8 0x000003fc
+ST_RD:  15 0x00000c2c
+-- 4415000
+debugasm 00000060 01078793     addi
+DECODE: 0x00000060 0x01078793 addi
+LD_RS1: 15 0x00000c2c
+ST_RD:  15 0x00000c3c
+-- 4495000
+debugasm 00000064 fef42023       sw
+DECODE: 0x00000064 0xfef42023 sw
+LD_RS1:  8 0x000003fc
+LD_RS2: 15 0x00000c3c
+-- 4625000
+debugasm 00000068 fe042783       lw
+DECODE: 0x00000068 0xfe042783 lw
+LD_RS1:  8 0x000003fc
+ST_RD:  15 0x00000c3c
+-- 4755000
+debugasm 0000006c 00f00713     addi
+DECODE: 0x0000006c 0x00f00713 addi
+LD_RS1:  0 0x00000000
+ST_RD:  14 0x0000000f
+-- 4835000
+debugasm 00000070 00e7a023       sw
+DECODE: 0x00000070 0x00e7a023 sw
+LD_RS1: 15 0x00000c3c
+LD_RS2: 14 0x0000000f
+-- 4965000
+debugasm 00000074 fe042783       lw
+DECODE: 0x00000074 0xfe042783 lw
+LD_RS1:  8 0x000003fc
+ST_RD:  15 0x00000c3c
+-- 5095000
+debugasm 00000078 ff878793     addi
+DECODE: 0x00000078 0xff878793 addi
+LD_RS1: 15 0x00000c3c
+ST_RD:  15 0x00000c34
+-- 5175000
+debugasm 0000007c fef42023       sw
+DECODE: 0x0000007c 0xfef42023 sw
+LD_RS1:  8 0x000003fc
+LD_RS2: 15 0x00000c34
+-- 5305000
+debugasm 00000080 fe042783       lw
+DECODE: 0x00000080 0xfe042783 lw
+LD_RS1:  8 0x000003fc
+ST_RD:  15 0x00000c34
+-- 5435000
+debugasm 00000084 0007a023       sw
+DECODE: 0x00000084 0x0007a023 sw
+LD_RS1: 15 0x00000c34
+LD_RS2:  0 0x00000000
+-- 5565000
+debugasm 00000088 fe042783       lw
+DECODE: 0x00000088 0xfe042783 lw
+LD_RS1:  8 0x000003fc
+ST_RD:  15 0x00000c34
+-- 5695000
+debugasm 0000008c 00478793     addi
+DECODE: 0x0000008c 0x00478793 addi
+LD_RS1: 15 0x00000c34
+ST_RD:  15 0x00000c38
+-- 5775000
+debugasm 00000090 10000713     addi
+DECODE: 0x00000090 0x10000713 addi
+LD_RS1:  0 0x00000000
+ST_RD:  14 0x00000100
+-- 5855000
+debugasm 00000094 00e7a023       sw
+DECODE: 0x00000094 0x00e7a023 sw
+LD_RS1: 15 0x00000c38
+LD_RS2: 14 0x00000100
+-- 5985000
+debugasm 00000098 fe042783       lw
+DECODE: 0x00000098 0xfe042783 lw
+LD_RS1:  8 0x000003fc
+ST_RD:  15 0x00000c34
+-- 6115000
+debugasm 0000009c ff878793     addi
+DECODE: 0x0000009c 0xff878793 addi
+LD_RS1: 15 0x00000c34
+ST_RD:  15 0x00000c2c
+-- 6195000
+debugasm 000000a0 fef42023       sw
+DECODE: 0x000000a0 0xfef42023 sw
+LD_RS1:  8 0x000003fc
+LD_RS2: 15 0x00000c2c
+-- 6325000
+debugasm 000000a4 fe042783       lw
+DECODE: 0x000000a4 0xfe042783 lw
+LD_RS1:  8 0x000003fc
+ST_RD:  15 0x00000c2c
+-- 6455000
+debugasm 000000a8 0007a023       sw
+DECODE: 0x000000a8 0x0007a023 sw
+LD_RS1: 15 0x00000c2c
+LD_RS2:  0 0x00000000
+-- 6585000
+debugasm 000000ac fe042783       lw
+DECODE: 0x000000ac 0xfe042783 lw
+LD_RS1:  8 0x000003fc
+ST_RD:  15 0x00000c2c
+-- 6715000
+debugasm 000000b0 00478793     addi
+DECODE: 0x000000b0 0x00478793 addi
+LD_RS1: 15 0x00000c2c
+ST_RD:  15 0x00000c30
+-- 6795000
+debugasm 000000b4 10000713     addi
+DECODE: 0x000000b4 0x10000713 addi
+LD_RS1:  0 0x00000000
+ST_RD:  14 0x00000100
+-- 6875000
+debugasm 000000b8 00e7a023       sw
+DECODE: 0x000000b8 0x00e7a023 sw
+LD_RS1: 15 0x00000c30
+LD_RS2: 14 0x00000100
+-- 7005000
+debugasm 000000bc 60000793     addi
+DECODE: 0x000000bc 0x60000793 addi
 LD_RS1:  0 0x00000000
 ST_RD:  15 0x00000600
--- 3735000
-debugasm 00000048 fef42023       sw
-DECODE: 0x00000048 0xfef42023 sw
+-- 7085000
+debugasm 000000c0 fef42023       sw
+DECODE: 0x000000c0 0xfef42023 sw
 LD_RS1:  8 0x000003fc
 LD_RS2: 15 0x00000600
--- 3865000
-debugasm 0000004c fe042783       lw
-DECODE: 0x0000004c 0xfe042783 lw
+-- 7215000
+debugasm 000000c4 fe042783       lw
+DECODE: 0x000000c4 0xfe042783 lw
 LD_RS1:  8 0x000003fc
 ST_RD:  15 0x00000600
--- 3995000
-debugasm 00000050 00005737      lui
-DECODE: 0x00000050 0x00005737 lui
+-- 7345000
+debugasm 000000c8 00005737      lui
+DECODE: 0x000000c8 0x00005737 lui
 ST_RD:  14 0x00005000
--- 4075000
-debugasm 00000054 5aa70713     addi
-DECODE: 0x00000054 0x5aa70713 addi
+-- 7425000
+debugasm 000000cc 5aa70713     addi
+DECODE: 0x000000cc 0x5aa70713 addi
 LD_RS1: 14 0x00005000
 ST_RD:  14 0x000055aa
--- 4155000
-debugasm 00000058 00e7a023       sw
-DECODE: 0x00000058 0x00e7a023 sw
+-- 7505000
+debugasm 000000d0 00e7a023       sw
+DECODE: 0x000000d0 0x00e7a023 sw
 LD_RS1: 15 0x00000600
 LD_RS2: 14 0x000055aa
-debugasm 0000005c 00000013     addi
-DECODE: 0x0000005c 0x00000013 addi
--- 4355000
+debugasm 000000d4 00000013     addi
+DECODE: 0x000000d4 0x00000013 addi
+-- 7705000
 debugasm 00000800 00000013     addi
 DECODE: 0x00000800 0x00000013 addi
 LD_RS1:  0 0x00000000
 ST_RD:   0 0x00000000
--- 4435000
+-- 7785000
 debugasm 00000804 0000006f      jal
 DECODE: 0x00000804 0x0000006f jal
 ST_RD:   0 0x00000808, BRANCH 0x00000804
--- 4515000
+-- 7865000
 debugasm 00000804 0000006f      jal
 DECODE: 0x00000804 0x0000006f jal
 ST_RD:   0 0x00000808, BRANCH 0x00000804
--- 4595000
+-- 7945000
 debugasm 00000804 0000006f      jal
 DECODE: 0x00000804 0x0000006f jal
 ST_RD:   0 0x00000808, BRANCH 0x00000804
--- 4675000
-debugasm 00000804 0000006f      jal
-DECODE: 0x00000804 0x0000006f jal
-ST_RD:   0 0x00000808, BRANCH 0x00000804
--- 4755000
-debugasm 00000804 0000006f      jal
-DECODE: 0x00000804 0x0000006f jal
-ST_RD:   0 0x00000808, BRANCH 0x00000804
--- 4835000
-debugasm 00000804 0000006f      jal
-DECODE: 0x00000804 0x0000006f jal
-ST_RD:   0 0x00000808, BRANCH 0x00000804
--- 4915000
-debugasm 00000804 0000006f      jal
-DECODE: 0x00000804 0x0000006f jal
-ST_RD:   0 0x00000808, BRANCH 0x00000804
--- 4995000

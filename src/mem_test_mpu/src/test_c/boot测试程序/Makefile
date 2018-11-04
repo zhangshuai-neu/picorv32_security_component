@@ -1,4 +1,8 @@
-all: boot.asm
+all: boot.data
+	@ echo "ok"
+	
+boot.data: boot.asm
+	$(shell ./get_data.sh)
 
 boot.asm: main.o
 	riscv32-unknown-elf-objdump  main.o  -d  > boot.asm
