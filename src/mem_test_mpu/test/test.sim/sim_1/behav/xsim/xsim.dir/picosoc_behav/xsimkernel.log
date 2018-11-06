@@ -1,7 +1,7 @@
-Running: xsim.dir/picosoc_behav/xsimk -simmode gui -wdb picosoc_behav.wdb -simrunnum 0 -socket 53606
+Running: xsim.dir/picosoc_behav/xsimk -simmode gui -wdb picosoc_behav.wdb -simrunnum 0 -socket 60673
 Design successfully loaded
-Design Loading Memory Usage: 47504 KB (Peak: 47504 KB)
-Design Loading CPU Usage: 10 ms
+Design Loading Memory Usage: 47508 KB (Peak: 47508 KB)
+Design Loading CPU Usage: 20 ms
 Simulation completed
-Simulation Memory Usage: 133608 KB (Peak: 194780 KB)
-Simulation CPU Usage: 40 ms
+Simulation Memory Usage: 133612 KB (Peak: 194784 KB)
+Simulation CPU Usage: 30 ms

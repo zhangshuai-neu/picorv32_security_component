@@ -31,13 +31,13 @@ module mem_mpu #(
     // 连接cpu的接口===================
         input wire is_inst,             //判断是否为指令
         output reg inform_cpu_wait,     //通知cpu等待
+        output judge_flag,
         
         // 指令地址接口
         input wire [31:0] pc_addr,      //数据操作指令的pcz
         
         // 中断接口
         output reg interrupt,           //1 为中断
-        output reg is_legal_accces,     //方便调试
         
         // 来自cpu的访存信号
         input wire        cpu_valid,
@@ -78,8 +78,6 @@ module mem_mpu #(
     assign is_data_op = do_read_data || do_write_data;
     
     // mpu 临时存储来自cpu的信号 =================================
-    reg [3:0]  mpu2mem_wen;
-    reg [21:0] mpu2mem_addr;
     reg [31:0] mpu2mem_wdata;
     reg [31:0] mpu2mem_rdata;
     
@@ -90,13 +88,14 @@ module mem_mpu #(
     
 	// mpu cache 临时存储 ======================================
     // 存放从 mem 中读取的 mpu 信息
-	reg [DATA_WIDTH-1:0] mpu_cache[MPU_ITEM_NUM*MPU_ITEM_LEN:0];  
+	(* ram_style = "registers" *) reg [DATA_WIDTH-1:0] mpu_cache [0:MPU_ITEM_NUM*MPU_ITEM_LEN];  
 	reg cache_need_mod;                             // 判断 mpu cache 是否需要更新
     reg is_legal_accces;                            // 是否合法,不合法
-    reg access_control_ok;                          // 访问权限
     reg [21:0] item_count;                          // 更新cache时的计数
+    reg judge_flag;
     integer i;                                      // cache索引
     integer fine_item;
+    
     
     // 复位 ===================================================
 	always @(posedge clk) begin 
@@ -104,7 +103,7 @@ module mem_mpu #(
             cache_need_mod <= 1'b1;
             is_legal_accces <= 1'b1;
             fine_item <= MPU_ITEM_NUM+1;
-            access_control_ok <= 1;
+            judge_flag <=0;
             
             inform_cpu_wait <=0;
             cpu_ready <=0;
@@ -142,6 +141,7 @@ module mem_mpu #(
             
             is_legal_accces <= 1;
             fine_item <= MPU_ITEM_NUM+1;
+            judge_flag <= 0;
             
             temp_reg <= 0;
             temp_count<= 0;
@@ -158,7 +158,8 @@ module mem_mpu #(
             end
         end
     end
-	
+
+    
 	// 指令通信 ===============================================
 	always @(posedge clk) begin
         if (resetn) begin
@@ -166,9 +167,22 @@ module mem_mpu #(
                 do_read_inst <= 1;
                 inform_cpu_wait <=1;
                 //读指令
+                temp_reg <= 0;
+                
                 mem_wen  <= mpu_mem_wen;
                 mem_addr <= cpu_addr;
-                temp_reg <= 0;
+            end
+            
+            //解决 mem_wen和mem_addr的赋值冲突
+            //cache操作
+            if (is_data_op && cache_need_mod && item_count<= MPU_ITEM_NUM * MPU_ITEM_LEN) begin
+                mem_wen <= cache2mem_wen;
+                mem_addr <= cache2mem_addr+item_count;
+            end
+            //数据操作
+            if(!is_inst && !is_data_op && cpu_valid && !cpu_ready) begin
+                mem_wen <= mpu_mem_wen;
+                mem_addr <= cpu_addr;
             end
         end
     end
@@ -194,9 +208,7 @@ module mem_mpu #(
                         //读数据
                         do_read_data <= 1;
                         inform_cpu_wait <=1;
-                        
-                        mpu2mem_wen <= mpu_mem_wen;
-                        mpu2mem_addr <= cpu_addr;
+
                         mpu2mem_rdata <= mem_rdata;
                     end
                     else begin
@@ -204,8 +216,6 @@ module mem_mpu #(
                         do_write_data <= 1;
                         inform_cpu_wait <=1;
                         
-                        mpu2mem_wen <= mpu_mem_wen;
-                        mpu2mem_addr <= cpu_addr;
                         mpu2mem_wdata <= cpu_wdata;
                     end
                 end
@@ -215,15 +225,23 @@ module mem_mpu #(
     
     // 获取mpu信息，并存入 mpu cache
     always @(posedge clk) begin
-        if (resetn && is_data_op) begin
+        //更新cache
+        if (resetn && is_data_op && cache_need_mod) begin
             if (cache_need_mod && item_count<= MPU_ITEM_NUM * MPU_ITEM_LEN) begin
-                mem_wen <= cache2mem_wen;
-                mem_addr <= cache2mem_addr+item_count;
                 temp_count <= temp_count+1;
                 if (temp_count[0:0] == 1) begin
                     //过一个时钟在取数据
                     mpu_cache[item_count] <= mem_rdata;
                     item_count <= item_count+1;
+                end
+            end
+        end
+        
+        //写mem, 同步更新cache
+        if (resetn) begin
+            if(do_write_data && is_legal_accces && !cache_need_mod && judge_flag) begin          
+                if (MPU_START_ADDR<=cpu_addr && cpu_addr<= MPU_START_ADDR+MPU_ITEM_NUM*MPU_ITEM_LEN) begin
+                    mpu_cache[cpu_addr-MPU_START_ADDR] <= mpu2mem_wdata;
                 end
             end
         end
@@ -240,16 +258,16 @@ module mem_mpu #(
         end
     end
     
-    // 检查能否进行操作 ---- 需要进行更复杂的修改 ：）
+    // 检查能否进行操作 ---- 需要进行更复杂的修改
     always @(posedge clk) begin
         if (resetn && is_data_op) begin
-            if (!cache_need_mod) begin
+            if (!cache_need_mod && !judge_flag) begin
                 //search ok item
                 for(i=0;i<MPU_ITEM_NUM;i=i+1) begin
                      //mpu_cache[0]里面是时钟导致的乱数据
                     if(pc_word_addr>=mpu_cache[i*MPU_ITEM_LEN+1] && pc_word_addr<=mpu_cache[i*MPU_ITEM_LEN+2]) begin
                         //指令范围合法
-                        if(mpu2mem_addr>=mpu_cache[i*MPU_ITEM_LEN+3] && mpu2mem_addr<=mpu_cache[i*MPU_ITEM_LEN+4]) begin
+                        if(cpu_addr>=mpu_cache[i*MPU_ITEM_LEN+3] && cpu_addr<=mpu_cache[i*MPU_ITEM_LEN+4]) begin
                             //数据范围合法
                             fine_item = i;   
                         end
@@ -265,6 +283,8 @@ module mem_mpu #(
                 else begin
                     is_legal_accces <= 0;
                 end
+                
+                judge_flag <=1;
             end
         end
     end
@@ -272,7 +292,7 @@ module mem_mpu #(
     // 非法访问--触发mpu中断
     always @(posedge clk) begin
         if (resetn && is_data_op) begin
-            if(is_data_op && !is_legal_accces) begin
+            if(is_data_op && !is_legal_accces && judge_flag) begin
                 //使能mem_done和中断，使cpu运行中断程序
                 interrupt <= 1;
                 inform_cpu_wait <= 0;
@@ -288,53 +308,38 @@ module mem_mpu #(
             do_read_data <=0;
             do_write_data <=0;
             if(!is_data_op) begin
+                judge_flag <= 0;
                 interrupt<=0;
                 is_legal_accces <=1;
             end
         end
     end
     
-    // 合法读取数据
+    // 合法数据操作
     always @(posedge clk) begin
-        if (resetn && is_data_op) begin
-            if(do_read_data && is_legal_accces && !cache_need_mod) begin
-                mem_wen <= mpu2mem_wen;
-                mem_addr <= mpu2mem_addr;
-                
+        if (resetn && is_data_op && is_legal_accces && !cache_need_mod && judge_flag) begin
+            // 读数据
+            if(do_read_data) begin
                 //必须要放在这里，保持及时更新，否则会出现指令被当成数据的情况
                 cpu_rdata <= mem_rdata;
                 
                 temp_count <= temp_count+1;
                 if(temp_count[0:0] == 1) begin
-                    if(mpu2mem_wen == 4'b0000) begin
+                    if(mpu_mem_wen == 4'b0000) begin
                         do_read_data_ok <= 1;
                     end
                 end
             end
-        end
-    end
-    
-    // 合法写数据
-    always @(posedge clk) begin
-        if (resetn && is_data_op) begin
-            if(do_write_data && is_legal_accces && !cache_need_mod) begin
-                // 写 ram
-                mem_wen <= mpu2mem_wen;
-                mem_addr <= mpu2mem_addr;
-
+            // 写数据
+            if(do_write_data) begin
                 temp_count <= temp_count+1;
                 if(temp_count[0:0] == 1) begin
-                    if(mpu2mem_wen != 4'b0000) begin
+                    if(mpu_mem_wen != 4'b0000) begin
                         do_write_data_ok <= 1;
                         mem_wdata <= mpu2mem_wdata;
                     end
                 end
-                // 写 mpu_cache, 同步更新cache
-                if (MPU_START_ADDR<=mpu2mem_addr && mpu2mem_addr<= MPU_START_ADDR+MPU_ITEM_NUM*MPU_ITEM_LEN) begin
-                    mpu_cache[mpu2mem_addr-MPU_START_ADDR] <= mpu2mem_wdata;
-                end
             end
         end
     end
-    
 endmodule

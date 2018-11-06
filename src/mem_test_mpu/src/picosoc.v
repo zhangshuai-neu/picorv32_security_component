@@ -108,8 +108,7 @@ module picosoc ();
     //2) mem_mpu mem接口的mpu
     mem_mpu #(
         .DATA_WIDTH(32),
-        .MPU_START_ADDR(768),
-        .MPU_LEN(16)
+        .MPU_START_ADDR(768)
     ) 
     pico_mem_mpu
     (
